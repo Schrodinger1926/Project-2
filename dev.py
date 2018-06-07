@@ -121,26 +121,24 @@ import sys
 
 color_mean = []
 for i in range(n_train):
-    img = X_train[i].shape
+    img = X_train[i]
     color_mean.append(int(np.mean(img)))
 
-print("Length of color_mean: {}".format(len(color_mean)))
 plot_data(data = color_mean,
           xlabel = 'pixel values',
           ylabel = 'intensity',
           kind = 'training_avg_intensity',
           n_items = 256)
 
+# find outliers
 
 # Data augumentation
-
-# come back to this later
 
 #----------------------- Pre-Processing  ------------------------------------
 
 import cv2
 
-def get_gray_mean_normalized(data)
+def get_gray_mean_normalized_old(data):
     # convert to gray scale
     data_gray = np.mean(data, axis = 3).astype(dtype = np.uint8)
 
@@ -150,7 +148,8 @@ def get_gray_mean_normalized(data)
 
     # Take mean
     data_mean = np.mean(data_flat, axis = 1)
-    print(data_mean.shape)
+    data_mean = np.expand_dims(data_mean, axis = 1)
+    print("Mean over all gray scale images : {}".format(data_mean.shape))
 
     # Mean normalize
     data_mean_norm = (data_flat - data_mean)/255
@@ -163,19 +162,32 @@ def get_gray_mean_normalized(data)
     return data_mean_norm
 
 
-X_train_l2 = get_gray_mean_normalized(data = X_train)
-X_valid_l2 = get_gray_mean_normalized(data = X_valid)
-X_test_l2 = get_gray_mean_normalized(data = X_test)
+def get_gray_mean_normalized(data):
+    # convert to gray scale
+    data_gray = np.mean(data, axis = 3).astype(dtype = np.uint8)
+
+    # normalize
+    data_mean_norm = np.expand_dims((data_gray - 128)/128, axis = 3)
+
+    assert(data_mean_norm.shape == (data.shape[0], 32, 32, 1))
+
+    return data_mean_norm
+
+X_train = get_gray_mean_normalized(data = X_train)
+X_valid = get_gray_mean_normalized(data = X_valid)
+X_test = get_gray_mean_normalized(data = X_test)
 
 
 
 #----------------------- Model Architecture  ------------------------------------
 import tensorflow as tf
+from tensorflow.contrib.layers import flatten
+from sklearn.utils import shuffle
 
 EPOCHS = 10
 BATCH_SIZE = 128
 
-def LeNet(x):    
+def LeNet(x):
     # Hyperparameters
     mu = 0
     sigma = 0.1
@@ -231,7 +243,7 @@ def LeNet(x):
 
 x = tf.placeholder(tf.float32, (None, 32, 32, 1))
 y = tf.placeholder(tf.int32, (None))
-one_hot_y = tf.one_hot(y_train, n_classes)
+one_hot_y = tf.one_hot(y, n_classes)
 
 rate = 0.001
 
@@ -257,7 +269,6 @@ def evaluate(X_data, y_data):
     return total_accuracy / num_examples
 
 
-
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
     num_examples = len(X_train)
@@ -269,11 +280,13 @@ with tf.Session() as sess:
         for offset in range(0, num_examples, BATCH_SIZE):
             end = offset + BATCH_SIZE
             batch_x, batch_y = X_train[offset:end], y_train[offset:end]
+            assert(batch_x.shape[0] == batch_y.shape[0])
             sess.run(training_operation, feed_dict={x: batch_x, y: batch_y})
 
-        validation_accuracy = evaluate(X_validation, y_validation)
+        training_accuracy = evaluate(X_train, y_train)
+        validation_accuracy = evaluate(X_valid, y_valid)
         print("EPOCH {} ...".format(i+1))
-        print("Validation Accuracy = {:.3f}".format(validation_accuracy))
+        print("Training Accuracy = {:.3f} | Validation Accuracy = {:.3f}".format(training_accuracy, validation_accuracy))
         print()
 
     saver.save(sess, './lenet')
