@@ -42,8 +42,72 @@ image_shape = X_train.shape[1:]
 
 # TODO: How many unique classes/labels there are in the dataset.
 n_classes = len(np.unique(y_train))
-
 print("Number of training examples =", n_train)
 print("Number of testing examples =", n_test)
 print("Image data shape =", image_shape)
 print("Number of classes =", n_classes)
+
+#X_train_df = np.reshape(X_train, newshape = (n_train, image_shape[0]**image_shape[1]))
+#-----------------------------------------------------------
+
+### Data exploration visualization code goes here.
+### Feel free to use as many code cells as needed.
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+import pandas as pd
+import random
+
+# Research folders
+RND_DIR = 'rnd'
+if not os.path.isdir(RND_DIR):
+    os.mkdir(RND_DIR)
+
+
+# Visualizations will be shown in the notebook.
+
+CLASS_MAPPER = {}
+with open('signnames.csv', 'r') as f:
+    # skip first line
+    lines = f.readlines()[1:]
+    for line in lines:
+        label_id, label_name = line.strip().split(',')
+        CLASS_MAPPER[int(label_id)] = label_name
+
+# Display any image for sanity check
+idx = random.choice(range(n_train))
+mpimg.imsave('sanity_check.png', X_train[idx])
+#mpimg.imshow(X_train[idx])
+
+def plot_data(data, kind):
+    plt.figure()
+    plt.hist(data, bins = range(n_classes + 1))
+    plt.title('Class distribution of {} Data'.format(kind))
+    plt.xlabel('Classes')
+    plt.ylabel('Count')
+    ax = plt.gca()
+    ax.set_fc('k')
+    plt.savefig('{}_data_viz.png'.format(kind))
+
+
+for data, kind in zip([y_train, y_valid, y_test], ['training', 'validation', 'testing']):
+    plot_data(data, kind)
+
+
+# Check pixel distribution across each label
+import os
+from functools import reduce
+
+ROT_DIR = 'rotational_distrib'
+
+
+features_color = reduce(lambda x,y: x*y , image_shape)
+
+X_train_flat = np.reshape(X_train, newshape = (n_train, features_color))
+def get_avg_image_per_label():
+    idx = y_train == label
+    X_avg = np.mean(X_train[idx], axis = 0)
+    filename = os.path.join(RND_DIR)
+    mpimg.imsave('avg_img_{}.png'.format(CLASS_MAPPER[label]), X_avg)
+
+for label in range(n_classes):
+    get_avg_image_per_label(label)
