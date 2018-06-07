@@ -90,7 +90,10 @@ def plot_data(data, kind):
 
 
 for data, kind in zip([y_train, y_valid, y_test], ['training', 'validation', 'testing']):
-    plot_data(data, kind)
+    plot_data(data = data,
+              xlabel = 'classes',
+              ylabel = 'count',
+              kind = 'training')
 
 
 # Check pixel distribution across each label
@@ -99,7 +102,7 @@ from functools import reduce
 
 ROT_DIR = 'rotational_distrib'
 
-def get_avg_image_per_label(label):
+def get_avg_image_per_label(label, xlabel, ylabel, kind):
     idx = y_train == label
     X_avg = np.mean(X_train[idx], axis = 0)
     #filename = os.path.join(RND_DIR, 'avg_img_{}.png'.format(CLASS_MAPPER[label]))
@@ -112,11 +115,18 @@ for label in range(n_classes):
 # find outliers
 # check avg pixel intensity of each image in training set
 
+color_mean = []
 for i in range(n_train):
-    pass
+    img = X_train[i].shape
+    color_mean.append(np.mean(img))
+
+plot_data(data = color_mean,
+          xlabel = 'images'
+          ylabel = 'intensity'
+          kind = 'training_avg_intensity')
 
 
-
+# Data augumentation
 
 
 
