@@ -99,15 +99,41 @@ from functools import reduce
 
 ROT_DIR = 'rotational_distrib'
 
-
-features_color = reduce(lambda x,y: x*y , image_shape)
-
-X_train_flat = np.reshape(X_train, newshape = (n_train, features_color))
-def get_avg_image_per_label():
+def get_avg_image_per_label(label):
     idx = y_train == label
     X_avg = np.mean(X_train[idx], axis = 0)
-    filename = os.path.join(RND_DIR)
-    mpimg.imsave('avg_img_{}.png'.format(CLASS_MAPPER[label]), X_avg)
+    #filename = os.path.join(RND_DIR, 'avg_img_{}.png'.format(CLASS_MAPPER[label]))
+    filename = os.path.join(RND_DIR, 'avg_img_{}.png'.format(label))
+    mpimg.imsave(filename, X_avg)
 
 for label in range(n_classes):
     get_avg_image_per_label(label)
+
+# find outliers
+# check avg pixel intensity of each image in training set
+
+for i in range(n_train):
+    pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
