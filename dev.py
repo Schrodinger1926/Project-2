@@ -78,12 +78,12 @@ idx = random.choice(range(n_train))
 mpimg.imsave('sanity_check.png', X_train[idx])
 #mpimg.imshow(X_train[idx])
 
-def plot_data(data, kind):
+def plot_data(data, xlabel, ylabel, kind, n_items):
     plt.figure()
-    plt.hist(data, bins = range(n_classes + 1))
+    plt.hist(data, bins = range(n_items + 1))
     plt.title('Class distribution of {} Data'.format(kind))
-    plt.xlabel('Classes')
-    plt.ylabel('Count')
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
     ax = plt.gca()
     ax.set_fc('k')
     plt.savefig('{}_data_viz.png'.format(kind))
@@ -93,21 +93,23 @@ for data, kind in zip([y_train, y_valid, y_test], ['training', 'validation', 'te
     plot_data(data = data,
               xlabel = 'classes',
               ylabel = 'count',
-              kind = 'training')
+              kind = 'training',
+              n_items = n_classes)
 
 
 # Check pixel distribution across each label
 import os
+import cv2
 from functools import reduce
 
 ROT_DIR = 'rotational_distrib'
 
-def get_avg_image_per_label(label, xlabel, ylabel, kind):
+def get_avg_image_per_label(label):
     idx = y_train == label
-    X_avg = np.mean(X_train[idx], axis = 0)
-    #filename = os.path.join(RND_DIR, 'avg_img_{}.png'.format(CLASS_MAPPER[label]))
+    X_avg = np.mean(X_train[idx], axis = 0).astype(dtype = np.uint8)
     filename = os.path.join(RND_DIR, 'avg_img_{}.png'.format(label))
     mpimg.imsave(filename, X_avg)
+    #SID: imshow here
 
 for label in range(n_classes):
     get_avg_image_per_label(label)
@@ -115,35 +117,166 @@ for label in range(n_classes):
 # find outliers
 # check avg pixel intensity of each image in training set
 
+import sys
+
 color_mean = []
 for i in range(n_train):
     img = X_train[i].shape
-    color_mean.append(np.mean(img))
+    color_mean.append(int(np.mean(img)))
 
+print("Length of color_mean: {}".format(len(color_mean)))
 plot_data(data = color_mean,
-          xlabel = 'images'
-          ylabel = 'intensity'
-          kind = 'training_avg_intensity')
+          xlabel = 'pixel values',
+          ylabel = 'intensity',
+          kind = 'training_avg_intensity',
+          n_items = 256)
 
 
 # Data augumentation
 
+# come back to this later
+
+#----------------------- Pre-Processing  ------------------------------------
+
+import cv2
+
+def get_gray_mean_normalized(data)
+    # convert to gray scale
+    data_gray = np.mean(data, axis = 3).astype(dtype = np.uint8)
+
+    # Reshape data
+    newshape = (data.shape[0], data.shape[1]**2)
+    data_flat = np.resize(data, newshape)
+
+    # Take mean
+    data_mean = np.mean(data_flat, axis = 1)
+    print(data_mean.shape)
+
+    # Mean normalize
+    data_mean_norm = (data_flat - data_mean)/255
+
+    # reshape to original
+    data_mean_norm = np.reshape(data_mean_norm, (data.shape[0], data.shape[1], data.shape[1], 1))
+
+    assert(data_mean_norm.shape == (data.shape[0], 32, 32, 1))
+
+    return data_mean_norm
+
+
+X_train_l2 = get_gray_mean_normalized(data = X_train)
+X_valid_l2 = get_gray_mean_normalized(data = X_valid)
+X_test_l2 = get_gray_mean_normalized(data = X_test)
 
 
 
+#----------------------- Model Architecture  ------------------------------------
+import tensorflow as tf
+
+EPOCHS = 10
+BATCH_SIZE = 128
+
+def LeNet(x):    
+    # Hyperparameters
+    mu = 0
+    sigma = 0.1
+
+    # SOLUTION: Layer 1: Convolutional. Input = 32x32x1. Output = 28x28x6.
+    conv1_W = tf.Variable(tf.truncated_normal(shape=(5, 5, 1, 6), mean = mu, stddev = sigma))
+    conv1_b = tf.Variable(tf.zeros(6))
+    conv1   = tf.nn.conv2d(x, conv1_W, strides=[1, 1, 1, 1], padding='VALID') + conv1_b
+
+    # SOLUTION: Activation.
+    conv1 = tf.nn.relu(conv1)
+
+    # SOLUTION: Pooling. Input = 28x28x6. Output = 14x14x6.
+    conv1 = tf.nn.max_pool(conv1, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='VALID')
+
+    # SOLUTION: Layer 2: Convolutional. Output = 10x10x16.
+    conv2_W = tf.Variable(tf.truncated_normal(shape=(5, 5, 6, 16), mean = mu, stddev = sigma))
+    conv2_b = tf.Variable(tf.zeros(16))
+    conv2   = tf.nn.conv2d(conv1, conv2_W, strides=[1, 1, 1, 1], padding='VALID') + conv2_b
+
+    # SOLUTION: Activation.
+    conv2 = tf.nn.relu(conv2)
+
+    # SOLUTION: Pooling. Input = 10x10x16. Output = 5x5x16.
+    conv2 = tf.nn.max_pool(conv2, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='VALID')
+
+    # SOLUTION: Flatten. Input = 5x5x16. Output = 400.
+    fc0   = flatten(conv2)
+
+    # SOLUTION: Layer 3: Fully Connected. Input = 400. Output = 120.
+    fc1_W = tf.Variable(tf.truncated_normal(shape=(400, 120), mean = mu, stddev = sigma))
+    fc1_b = tf.Variable(tf.zeros(120))
+    fc1   = tf.matmul(fc0, fc1_W) + fc1_b
+
+    # SOLUTION: Activation.
+    fc1    = tf.nn.relu(fc1)
+
+    # SOLUTION: Layer 4: Fully Connected. Input = 120. Output = 84.
+    fc2_W  = tf.Variable(tf.truncated_normal(shape=(120, 84), mean = mu, stddev = sigma))
+    fc2_b  = tf.Variable(tf.zeros(84))
+    fc2    = tf.matmul(fc1, fc2_W) + fc2_b
+
+    # SOLUTION: Activation.
+    fc2    = tf.nn.relu(fc2)
+
+    # SOLUTION: Layer 5: Fully Connected. Input = 84. Output = 10.
+    fc3_W  = tf.Variable(tf.truncated_normal(shape=(84, 43), mean = mu, stddev = sigma))
+    fc3_b  = tf.Variable(tf.zeros(43))
+    logits = tf.matmul(fc2, fc3_W) + fc3_b
+
+    return logits
+
+
+x = tf.placeholder(tf.float32, (None, 32, 32, 1))
+y = tf.placeholder(tf.int32, (None))
+one_hot_y = tf.one_hot(y_train, n_classes)
+
+rate = 0.001
+
+logits = LeNet(x)
+cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=one_hot_y, logits=logits)
+loss_operation = tf.reduce_mean(cross_entropy)
+optimizer = tf.train.AdamOptimizer(learning_rate = rate)
+training_operation = optimizer.minimize(loss_operation)
+
+correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(one_hot_y, 1))
+accuracy_operation = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+saver = tf.train.Saver()
+
+
+def evaluate(X_data, y_data):
+    num_examples = len(X_data)
+    total_accuracy = 0
+    sess = tf.get_default_session()
+    for offset in range(0, num_examples, BATCH_SIZE):
+        batch_x, batch_y = X_data[offset:offset+BATCH_SIZE], y_data[offset:offset+BATCH_SIZE]
+        accuracy = sess.run(accuracy_operation, feed_dict={x: batch_x, y: batch_y})
+        total_accuracy += (accuracy * len(batch_x))
+    return total_accuracy / num_examples
 
 
 
+with tf.Session() as sess:
+    sess.run(tf.global_variables_initializer())
+    num_examples = len(X_train)
 
+    print("Training...")
+    print()
+    for i in range(EPOCHS):
+        X_train, y_train = shuffle(X_train, y_train)
+        for offset in range(0, num_examples, BATCH_SIZE):
+            end = offset + BATCH_SIZE
+            batch_x, batch_y = X_train[offset:end], y_train[offset:end]
+            sess.run(training_operation, feed_dict={x: batch_x, y: batch_y})
 
+        validation_accuracy = evaluate(X_validation, y_validation)
+        print("EPOCH {} ...".format(i+1))
+        print("Validation Accuracy = {:.3f}".format(validation_accuracy))
+        print()
 
-
-
-
-
-
-
-
-
+    saver.save(sess, './lenet')
+    print("Model saved")
 
 
