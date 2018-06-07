@@ -132,46 +132,33 @@ plot_data(data = color_mean,
 
 # find outliers
 
-# Data augumentation
 
 #----------------------- Pre-Processing  ------------------------------------
 
 import cv2
 
-def get_gray_mean_normalized_old(data):
-    # convert to gray scale
-    data_gray = np.mean(data, axis = 3).astype(dtype = np.uint8)
-
-    # Reshape data
-    newshape = (data.shape[0], data.shape[1]**2)
-    data_flat = np.resize(data, newshape)
-
-    # Take mean
-    data_mean = np.mean(data_flat, axis = 1)
-    data_mean = np.expand_dims(data_mean, axis = 1)
-    print("Mean over all gray scale images : {}".format(data_mean.shape))
-
-    # Mean normalize
-    data_mean_norm = (data_flat - data_mean)/255
-
-    # reshape to original
-    data_mean_norm = np.reshape(data_mean_norm, (data.shape[0], data.shape[1], data.shape[1], 1))
-
-    assert(data_mean_norm.shape == (data.shape[0], 32, 32, 1))
-
-    return data_mean_norm
-
-
 def get_gray_mean_normalized(data):
+
     # convert to gray scale
-    data_gray = np.mean(data, axis = 3).astype(dtype = np.uint8)
+    gray_operator = np.array([0.299, 0.587, 0.114])
 
     # normalize
-    data_mean_norm = np.expand_dims((data_gray - 128)/128, axis = 3)
+    data_mean_norm = np.expand_dims(np.dot(data, gray_operator), axis = 3)
 
     assert(data_mean_norm.shape == (data.shape[0], 32, 32, 1))
 
     return data_mean_norm
+
+
+def get_augmented_data(data):
+    # salt pepper
+
+    # fine rotation
+
+    # 
+
+# data augmentation
+X_train = get_augmented_data(X_train)
 
 X_train = get_gray_mean_normalized(data = X_train)
 X_valid = get_gray_mean_normalized(data = X_valid)
@@ -184,7 +171,7 @@ import tensorflow as tf
 from tensorflow.contrib.layers import flatten
 from sklearn.utils import shuffle
 
-EPOCHS = 10
+EPOCHS = 100
 BATCH_SIZE = 128
 
 def LeNet(x):
@@ -245,7 +232,7 @@ x = tf.placeholder(tf.float32, (None, 32, 32, 1))
 y = tf.placeholder(tf.int32, (None))
 one_hot_y = tf.one_hot(y, n_classes)
 
-rate = 0.001
+rate = 0.0005
 
 logits = LeNet(x)
 cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=one_hot_y, logits=logits)
@@ -268,7 +255,30 @@ def evaluate(X_data, y_data):
         total_accuracy += (accuracy * len(batch_x))
     return total_accuracy / num_examples
 
+def get_variance_bias_plot(train_data, valid_data):
+    plt.figure()
+    assert(len(train_data) == len(valid_data))
+    n = len(train_data)
 
+    # Plot data
+    train_line, = plt.plot(range(n), train_data, 'r', label = 'Training')
+    valid_line, = plt.plot(range(n), valid_data, 'b', label = 'Validation')
+    plt.title('Variance-Bias analysis')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy')
+
+    # add legend
+    first_legend = plt.legend(handles=[train_line], loc = 4)
+    plt.gca().add_artist(first_legend)
+    plt.legend(handles=[valid_line], loc = 3)
+
+    # set background color
+    plt.gca().set_fc('k')
+
+    plt.savefig('variance_bias_iter_2.png'.format(kind))
+
+
+train_acc_list, valid_acc_list = [], []
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
     num_examples = len(X_train)
@@ -285,10 +295,15 @@ with tf.Session() as sess:
 
         training_accuracy = evaluate(X_train, y_train)
         validation_accuracy = evaluate(X_valid, y_valid)
+        # collect data
+        train_acc_list.append(training_accuracy)
+        valid_acc_list.append(validation_accuracy)
+
         print("EPOCH {} ...".format(i+1))
         print("Training Accuracy = {:.3f} | Validation Accuracy = {:.3f}".format(training_accuracy, validation_accuracy))
         print()
-
+    print("Getting training analysis")
+    get_variance_bias_plot(train_acc_list, valid_acc_list)
     saver.save(sess, './lenet')
     print("Model saved")
 
