@@ -93,7 +93,7 @@ for data, kind in zip([y_train, y_valid, y_test], ['training', 'validation', 'te
     plot_data(data = data,
               xlabel = 'classes',
               ylabel = 'count',
-              kind = 'training',
+              kind = kind,
               n_items = n_classes)
 
 
@@ -144,21 +144,75 @@ def get_gray_mean_normalized(data):
 
     # normalize
     data_mean_norm = np.expand_dims(np.dot(data, gray_operator), axis = 3)
-
     assert(data_mean_norm.shape == (data.shape[0], 32, 32, 1))
 
     return data_mean_norm
 
 
-def get_augmented_data(data):
-    # salt pepper
+def get_eroded_data(data, labels, max_label_count = 2000):
+    res_data = []
+    res_label = []
+    for i in range(n_classes):
+        data_per_label = data[labels == i]
+        # limit data set
+        size = min(max_label_count, data_per_label.shape[0])
+        res_data.append(data_per_label[:size])
+        res_label.extend(size*[i])
 
-    # fine rotation
+    return np.vstack(res_data), np.array(res_label)
 
-    # 
+
+def add_gaussian_noise(data):
+     mean = 0
+     var = 0.1
+     sigma = var**0.5
+     gauss = np.random.normal(mean, sigma, data.shape)
+     noisy = data + gauss
+     return noisy
+
+def get_augmented_data(data, labels, req_size = 1000):
+
+    res_data = []
+    res_label = []
+    for i in range(n_classes):
+        data_per_label = data[labels == i]
+        size = data_per_label.shape[0]
+        req = max(req_size - size, 0)
+        done = 0
+        res_data_per_label = [data_per_label]
+        while(done < req):
+            # batch size to be processed
+            batch_size = min(req - done, size)
+
+            # process batch
+            res_data_per_label.append(add_gaussian_noise(data_per_label[:batch_size]))
+
+            # track progress
+            done += batch_size
+
+        # Dataset for label i
+        res_data.append(np.vstack(res_data_per_label))
+
+        # labelset for lable i
+        res_label.extend((size + req)*[i])
+
+    return np.vstack(res_data), np.array(res_label)
 
 # data augmentation
-X_train = get_augmented_data(X_train)
+X_train, y_train = get_augmented_data(X_train, y_train)
+
+assert(X_train.shape[0] ==  y_train.shape[0]),"data:  {} | label: {}".format(X_train.shape, y_train.shape)
+
+X_train, y_train = get_eroded_data(X_train, y_train)
+
+# Plot distribution now
+plot_data(data = y_train,
+          xlabel = 'classes',
+          ylabel = 'count',
+          kind = 'train_eroded',
+          n_items = n_classes)
+
+
 
 X_train = get_gray_mean_normalized(data = X_train)
 X_valid = get_gray_mean_normalized(data = X_valid)
@@ -174,7 +228,7 @@ from sklearn.utils import shuffle
 EPOCHS = 100
 BATCH_SIZE = 128
 
-def LeNet(x):
+def LeNet(x, keep_prob):
     # Hyperparameters
     mu = 0
     sigma = 0.1
@@ -212,6 +266,9 @@ def LeNet(x):
     # SOLUTION: Activation.
     fc1    = tf.nn.relu(fc1)
 
+    # DROPOUT
+    fc1    = tf.nn.dropout(fc1, keep_prob)
+
     # SOLUTION: Layer 4: Fully Connected. Input = 120. Output = 84.
     fc2_W  = tf.Variable(tf.truncated_normal(shape=(120, 84), mean = mu, stddev = sigma))
     fc2_b  = tf.Variable(tf.zeros(84))
@@ -219,6 +276,9 @@ def LeNet(x):
 
     # SOLUTION: Activation.
     fc2    = tf.nn.relu(fc2)
+
+    # DROPOUT
+    fc2    = tf.nn.dropout(fc2, keep_prob)
 
     # SOLUTION: Layer 5: Fully Connected. Input = 84. Output = 10.
     fc3_W  = tf.Variable(tf.truncated_normal(shape=(84, 43), mean = mu, stddev = sigma))
@@ -231,10 +291,11 @@ def LeNet(x):
 x = tf.placeholder(tf.float32, (None, 32, 32, 1))
 y = tf.placeholder(tf.int32, (None))
 one_hot_y = tf.one_hot(y, n_classes)
+keep_prob = tf.placeholder(tf.float32)
 
-rate = 0.0005
+rate = 0.001
 
-logits = LeNet(x)
+logits = LeNet(x, keep_prob)
 cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=one_hot_y, logits=logits)
 loss_operation = tf.reduce_mean(cross_entropy)
 optimizer = tf.train.AdamOptimizer(learning_rate = rate)
@@ -251,8 +312,9 @@ def evaluate(X_data, y_data):
     sess = tf.get_default_session()
     for offset in range(0, num_examples, BATCH_SIZE):
         batch_x, batch_y = X_data[offset:offset+BATCH_SIZE], y_data[offset:offset+BATCH_SIZE]
-        accuracy = sess.run(accuracy_operation, feed_dict={x: batch_x, y: batch_y})
+        accuracy = sess.run(accuracy_operation, feed_dict={x: batch_x, y: batch_y, keep_prob: 1.0})
         total_accuracy += (accuracy * len(batch_x))
+
     return total_accuracy / num_examples
 
 def get_variance_bias_plot(train_data, valid_data):
@@ -275,7 +337,7 @@ def get_variance_bias_plot(train_data, valid_data):
     # set background color
     plt.gca().set_fc('k')
 
-    plt.savefig('variance_bias_iter_2.png'.format(kind))
+    plt.savefig('variance_bias_iter_dropout.png')
 
 
 train_acc_list, valid_acc_list = [], []
@@ -291,7 +353,7 @@ with tf.Session() as sess:
             end = offset + BATCH_SIZE
             batch_x, batch_y = X_train[offset:end], y_train[offset:end]
             assert(batch_x.shape[0] == batch_y.shape[0])
-            sess.run(training_operation, feed_dict={x: batch_x, y: batch_y})
+            sess.run(training_operation, feed_dict={x: batch_x, y: batch_y, keep_prob: 0.4})
 
         training_accuracy = evaluate(X_train, y_train)
         validation_accuracy = evaluate(X_valid, y_valid)
