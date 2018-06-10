@@ -1,6 +1,4 @@
-Caution : noise + translation
-50 : translation + skew
-children_crossing: translation + detailed information of two people
-keep_left: heavy noise
-two_way: slight rotation
+Caution_new : noise + translation
+100_new: different from traning in the sense it is quite bright white t image are dark
+
 
