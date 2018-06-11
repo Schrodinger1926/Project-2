@@ -30,9 +30,9 @@ The goals / steps of this project are the following:
     [image8]: ./assets/pixel_dist_testing.png "Avg Pixel intensity Distribution Testing "
     [image9]: ./assets/acc_loss.png ""
  
-    [image15]: ./assets/grayscaled.jpg "Grayscaling"
-    [image16]: ./assets/original.jpg "original"
-    [image17]: ./assets/augmented.jpg "Distribition after augmentation"
+    [image15]: ./assets/grayscaled.png "Grayscaling"
+    [image16]: ./assets/original.png "original"
+    [image17]: ./assets/augmented.png "Distribition after augmentation"
 
     [image10]: ./web_test/bumpy_road.jpg "Bumpy road"
     [image11]: ./web_test/roadwork.jpg "Roadwork"
@@ -280,7 +280,6 @@ The goals / steps of this project are the following:
 
 #### 3. Describe how certain the model is when predicting on each of the five new images by looking at the softmax probabilities for each prediction. Provide the top 5 softmax probabilities for each image along with the sign type of each probability. (OPTIONAL: as described in the "Stand Out Suggestions" part of the rubric, visualizations can also be provided such as bar charts)
 
-  The code for making predictions on my final model is located in the 11th cell of the Ipython notebook.
 
   Model strongly sure about its prediction and is correct too
 
@@ -294,6 +293,7 @@ The goals / steps of this project are the following:
 
 
   Model strongly sure about its prediction and is correct too
+
   | Probability             |     Prediction                                | 
   |:---------------------:|:---------------------------------------------:| 
   | 0.995053768157959 | General caution |
@@ -312,7 +312,7 @@ The goals / steps of this project are the following:
   | 1.1880657048435328e-12 | Priority road |
   | 6.706073007014049e-14 | Pedestrians |
 
-  Model strongly sure about its prediction and is correct too
+  Inasanely wrong prediction
 
   | Probability             |     Prediction                                | 
   |:---------------------:|:---------------------------------------------:| 
