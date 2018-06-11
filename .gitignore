@@ -5,3 +5,4 @@ models
 *.swp
 *.p
 certs
+.DS_Store
