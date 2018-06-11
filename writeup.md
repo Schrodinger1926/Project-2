@@ -25,17 +25,20 @@ The goals / steps of this project are the following:
 
     [image4]: ./rnd/avg_img_2.png "Avg Image over all images in Speed limit (50km/h)"
     [image5]: ./rnd/avg_img_28.png "Avg Image over all images in Children crossing"
+    [image6]: ./assets/training_avg_intensity_data_viz.png "Avg Pixel intensity Distribution Training"
+    [image7]: ./assets/pixel_dist_validation.png "Avg Pixel intensity Distribution Validation "
+    [image8]: ./assets/pixel_dist_testing.png "Avg Pixel intensity Distribution Testing "
+    [image9]: ./assets/acc_loss.png ""
+ 
+    [image15]: ./assets/grayscaled.jpg "Grayscaling"
+    [image16]: ./assets/original.jpg "original"
+    [image17]: ./assets/augmented.jpg "Distribition after augmentation"
 
-    [image6]: ./assets/training_avg_intensity_data_viz.png "Avg Pixel intensity Distribution"
-    [image7]: ./examples/grayscale.jpg "Grayscaling"
-    [image8]: ./examples/random_noise.jpg "Random Noise"
-
-    [image9]: ./web_test/placeholder.png "Traffic Sign 1"
-    [image10]: ./web_test/placeholder.png "Traffic Sign 2"
-    [image11]: ./web_test/placeholder.png "Traffic Sign 3"
-    [image12]: ./web_test/placeholder.png "Traffic Sign 4"
-    [image12]: ./web_test/placeholder.png "Traffic Sign 5"
-
+    [image10]: ./web_test/bumpy_road.jpg "Bumpy road"
+    [image11]: ./web_test/roadwork.jpg "Roadwork"
+    [image12]: ./web_test/stop.jpg "Stop"
+    [image13]: ./web_test/caution_new.jpg "Caution"
+    [image14]: ./web_test/right_of_way.jpg "Right-of-way"
 ## Rubric Points
 ### Here I will consider the [rubric points](https://review.udacity.com/#!/rubrics/481/view) individually and describe how I addressed each point in my implementation.  
 
@@ -50,10 +53,10 @@ The goals / steps of this project are the following:
     signs data set:
 
     * The size of training set is 34799
-    * The size of the validation set is 12630
-  * The size of test set is ?
-* The shape of a traffic sign image is (32, 32 3)
-  * The number of unique classes/labels in the data set is 4
+    * The size of the validation set is 4410
+    * The size of test set is 12630
+    * The shape of a traffic sign image is (32, 32 3)
+    * The number of unique classes/labels in the data set is 43
 
 #### 2. Include an exploratory visualization of the dataset.
 
@@ -72,9 +75,9 @@ The goals / steps of this project are the following:
   One thing I was curious about was what if some images are rotated by some angle.
   This was important because CNN's are translation invariant but not rotational.
 
-  So, I averaged over all the images per label.
+  So, I averaged over all the images per label <br>
 
-  Result
+######  Result
   ![alt text][image4]
 
   ![alt text][image5]
@@ -85,8 +88,6 @@ The goals / steps of this project are the following:
 
 ##### Pixel Intensity distribution
 
-  CELL: 
-
   Next thing I was curious about was what kind of light variation is present in data set.
   One way I though was to somehow capture the count for each pixel intensity. 
 
@@ -95,8 +96,9 @@ The goals / steps of this project are the following:
   Drew histogram of each pixel value count.
   ![alt text][image6]
 
+  ![alt text][image7]
 
-
+  ![alt text][image8]
 ### Design and Test a Model Architecture
 
 #### 1. Describe how you preprocessed the image data. What techniques were chosen and why did you choose these techniques? Consider including images showing the output of each preprocessing technique. Pre-processing refers to techniques such as converting to grayscale, normalization, etc. (OPTIONAL: As described in the "Stand Out Suggestions" part of the rubric, if you generated additional data for training, describe why you decided to generate additional data, how you generated the data, and provide example images of the additional data. Then describe the characteristics of the augmented training set like number of images in the set, number of images for each class, etc.)
@@ -129,19 +131,15 @@ The goals / steps of this project are the following:
   After some experiments I decided to go with Augment Data. Nonetheless, it didn't gave any noticable benifit in accuracy.
 
 
-  Here is an example of an original image and an augmented image:
+  ![alt text][image17]
+  
 
 ##### 2. Grayscale
 
-  I decided to convert the images to grayscale because only a few colors (RGB) were available across the whole dataset like red, black, white. So color here doesn't really provide much information here, Moreover that may lead to overfitting.
+  I decided to convert the images to grayscale because only a few colors (RGB) were available across the whole dataset like red, black, white. So color here doesn't really provide much information here, Moreover more weights to cater color would increase model complexity that may lead to overfitting.
 
-
-  Here is an example of a traffic sign image before and after grayscaling.
-
-  ![alt text][image2]
-
-
-
+  ![alt text][image16]
+  ![alt text][image15]
 ##### 3. Normalization
 
   Dataset was zero mean centered and scaled using `(pixel - 128)/ 128`.
@@ -230,7 +228,7 @@ The goals / steps of this project are the following:
 
   I ploted accuracy and loss Vs epochs on training and validation set to get a peak inside the training process.
 
-  ![alt text][image2]
+  ![alt text][image9]
 
 
 
@@ -246,11 +244,25 @@ The goals / steps of this project are the following:
 
   Here are five German traffic signs that I found on the web:
 
-  ![alt text][image4] ![alt text][image5] ![alt text][image6] 
-  ![alt text][image7] ![alt text][image8]
+  
+  ![alt text][image10]
+  Bumpy road
 
-  The first image might be difficult to classify because ...
 
+  ![alt text][image11]
+  Road work is quite complex with a man and pile of some stuff in place. Infering such abstraction could be challenging for the model
+
+  ![alt text][image12] 
+  
+   Stop sign actually contains a sequence of characters, may be hard to capture.
+   Also image is not centrified
+  
+   ![alt text][image13]
+    Caution has a very noisy background which might interfere with the sign after grayscaling.
+    Now it would be interesting to note weather the model is abel to get those triangle edges out.
+  ![alt text][image14]
+    This one doesnot have much of complexity in it, a basic web vanila test with some translational effect.
+   
 #### 2. Discuss the model's predictions on these new traffic signs and compare the results to predicting on the test set. At a minimum, discuss what the predictions were, the accuracy on these new predictions, and compare the accuracy to the accuracy on the test set (OPTIONAL: Discuss the results in more detail as described in the "Stand Out Suggestions" part of the rubric).
 
   Here are the results of the prediction:
